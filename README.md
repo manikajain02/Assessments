@@ -1,5 +1,5 @@
 # OnlineTest
-Code for online assessments and tests
+Code for TCS online assessments
 
 There are 2 solution I've implemented.
 
