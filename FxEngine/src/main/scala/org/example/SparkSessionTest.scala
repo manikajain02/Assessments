@@ -1,13 +1,15 @@
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
-import org.apache.spark.sql.functions.{col, expr, first, greatest, max, min}
-import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType}
+package org.example
+
+import org.apache.spark.sql.functions.{col, expr, first, greatest}
+import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructType}
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
 object SparkSessionTest {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder()
       .master("local[1]")
       .appName("SparkByExample")
-      .getOrCreate();
+      .getOrCreate()
 
     val schema = new StructType()
       .add("orderID", StringType, nullable = true)
@@ -53,13 +55,13 @@ object SparkSessionTest {
       greatest(col("matchTimeSell"), col("matchTimeBuy")).as("matchTime"),
       col("quantity"), col("price"))
 
-    println("Order book:")
+    println("org.example.Order book:")
     orderBookDF.show()
 
     println("Matches:")
     matchesDF.show()
 
-    matchedOrdersDF.write.option("header", true)
+    matchedOrdersDF.write.option("header", value = true)
       .mode(SaveMode.Overwrite)
       .csv("coding_exercise/output.csv")
 
