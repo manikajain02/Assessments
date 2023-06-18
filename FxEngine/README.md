@@ -7,13 +7,13 @@ There are two types of orders, BUY and SELL orders. A BUY order is for the price
 order is the price in USD you'll sell GBP for.
 
 Each order has the following fields:
-1. Order ID
+1. org.example.Order ID
         - This is a unique ID in the file which is used to track an order
 2. User Name
         - This is the user name of the user making the order
-3. Order Time
+3. org.example.Order Time
         - This is the time, in milliseconds since Jan 1st 1970, the order was placed
-4. Order Type
+4. org.example.Order Type
         - Either BUY or SELL
 5. Quantity
         - The number of currency units you want to BUY or SELL
