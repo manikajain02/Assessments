@@ -1,105 +1,95 @@
-###### Refinitiv Matching Engine Exercise
+# Overview:
+The project FxEngine contains the spark scala solution for a Trading Engine assessment problem by TCS.
 
-Your task is to create a new matching engine for FX orders. The engine will take a CSV file of orders for a given
-currency pair and match orders together. In this example you'll be looking at USD/GBP.
+## Build:
+The project uses maven for dependency management. The main dependencies are:
+- scala 2.13.0
+- spark-core_2.13
+- spark-sql_2.13
 
-There are two types of orders, BUY and SELL orders. A BUY order is for the price in USD you'll pay for GBP, SELL
-order is the price in USD you'll sell GBP for.
+Jars created:
+- Jar: FxEngine-1.0.0-SNAPSHOT.jar
+- UberJar: FxEngine-1.0.0-SNAPSHOT-jar-with-dependencies.jar
 
-Each order has the following fields:
-1. org.example.Order ID
-        - This is a unique ID in the file which is used to track an order
-2. User Name
-        - This is the user name of the user making the order
-3. org.example.Order Time
-        - This is the time, in milliseconds since Jan 1st 1970, the order was placed
-4. org.example.Order Type
-        - Either BUY or SELL
-5. Quantity
-        - The number of currency units you want to BUY or SELL
-6. Price
-        - The price you wish to sell for, this is in the lowest unit of the currency, i.e. for GBP it's in pence and for USD it's cents
-
-The matching engine must do the following:
-- It should match orders when they have the same quantity
-- If an order is matched it should be closed
-- If an order is not matched it should be kept on an "order book" and wait for an order which does match
-- When matching an order to the book the order should look for the best price
-- The best price for a BUY is the lowest possible price to BUY for
-- The best price for a SELL is the highest possible price to SELL for
-- You should always use the price from the "order book" when matching orders
-- When an order has matched you should record the IDs of both orders, the price, quantity and time of the match
-- If two orders match with the same price the first order is used
-- Orders won't have the same timestamp
-
-The file exampleOrders.csv is some example trading data, the matches for that trading data is in outputExampleMatches.csv
+Command To Run Application Locally with uber jar (assuming your are inside repo):
+```
+spark-submit --name "TradeEngine" --master local --class com.excercise.code.TradeExecution target/FxEngine-1.0.0-SNAPSHOT-jar-with-dependencies.jar input/inputOrders.csv
+```
+where `input/inputOrders.csv` is path to the input orders file.
 
 
-
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>manika</groupId>
-    <artifactId>TradeEngine</artifactId>
-    <version>1.0-SNAPSHOT</version>
-
-    <properties>
-        <maven.compiler.source>20</maven.compiler.source>
-        <maven.compiler.target>20</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <dependencies>
-    <dependency>
-        <groupId>org.apache.spark</groupId>
-        <artifactId>spark-core_2.13</artifactId>
-        <version>3.4.0</version>
-    </dependency>
-        <dependency>
-        <groupId>org.apache.spark</groupId>
-        <artifactId>spark-sql_2.13</artifactId>
-        <version>3.4.0</version>
-        <scope>provided</scope>
-    </dependency>
-    </dependencies>
-
-</project>
+## Code walkthrough:
+1. The main class is TradeEngine.scala
+2. There are two case classes defined i.e. `Order.scala` and `Match.scala` which represents an order and a match respectively. Since the schema is well defined we will be using Dataset[Order] and Dataset[Match] instead of a DataFrame in our program
+3. Import the required libraries and packages in the main class
+4. Create a Spark session on local and configure it
+5. Define the schema for reading the input file by Encoding the `Order.scala` case class
+6. Create the dataframe which will read the csv file and load the data into it. Convert the dataframe to `Dataset[Order]` and store in variable `inputOrdersDF`
+7. Create datasets for empty orderbook `Dataset[order]` and empty matchedOrders `Dataset[Match]`
+8. Applying the loop on `inputOrdersDF` dataset and do follwing for each input order:
+    - Evaluate `type` of matching order and `quanity`
+    - Filter matching orders from orderbook using the type and quantity evaluated above and store in `matchingOrders`.
+    - Find best match out of the matching orders as following:
+        - if orginal order is SELL then look for **Highest** BUY, so sort matching orders by price **descensing**
+        - if orginal order is BUY then look for **Lowest** SELL, so sort matching orders by price **ascending**
+    - If `matchingOrders` is empty then no match found. Simply place the input order in orderBook.
+    - If `matchingOrders` is not empty then take first and create a `Match`, place it in matched orders DataSet[Match] and remove the  
+      matched order from orderBook.
+9. Write out matches orders in `output/matchedOrders.csv` and open/unmatched orders in `output/OpenOrders.csv`
 
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{IntegerType, LongType, StringType, StructField, StructType}
+### Input/Output:
+The program takes 1 mandatory argument "ordersFilePath" which is the input file path containing all orders in below format.
 
-object ABC {
-  def main(args: Array[String]): Unit = {
-    println("Hello world!")
-    val spark = SparkSession.builder()
-      .appName("FXOrderMatchingEngine")
-      .master("local[*]")
-      .getOrCreate()
+```
+orderId,user,orderTime,orderType,quantity,price
+1,Steve,1623239770,SELL,72,1550
+2,Ben,1623239771,BUY,8,148
+3,Steve,1623239772,SELL,24,6612
+4,Kim,1623239773,SELL,98,435
+5,Sarah,1623239774,BUY,72,5039
+6,Ben,1623239775,SELL,75,6356
+7,Kim,1623239776,BUY,38,7957
+8,Alex,1623239777,BUY,51,218
+9,Jennifer,1623239778,SELL,29,204
+10,Alicia,1623239779,BUY,89,7596
+11,Alex,1623239780,BUY,70,2351
+12,James,1623239781,SELL,89,4352
+13,Sarah,1623239782,SELL,98,8302
+14,Alicia,1623239783,BUY,56,8771
+15,Alex,1623239784,BUY,83,737
+16,Andrew,1623239785,SELL,15,61
+17,Steve,1623239786,BUY,62,4381
+18,Ben,1623239787,BUY,33,5843
+19,Alicia,1623239788,BUY,20,5255
+20,James,1623239789,SELL,68,4260
+```
 
-    val schema = StructType(
-      Array(
-        StructField("OrderID", StringType, nullable = true),
-        StructField("UserName", StringType, nullable = true),
-        StructField("OrderTime", LongType, nullable = true),
-        StructField("OrderType", StringType, nullable = true),
-        StructField("Quantity", IntegerType, nullable = true),
-        StructField("Price", IntegerType, nullable = true)
-      )
-    )
-    // Read the CSV file of orders
-    val ordersDF = spark.read
-      .option("header", "true")
-      .option("inferSchema", "false")
-      .schema("customSchema")
-      .csv("coding_exercise/exampleOrders.csv")
-
-    val convertedDF = ordersDF.withColumn("OrderTime", from_unixtime(col("OrderTime")))
-    convertedDF.show()
-
-  }
-}
+The program outputs 2 csv files:
+- MatchedOrders: This file contains all the matches:
+```
+orderId1,orderId2,matchTime,quantity,price
+5,1,1623239774,72,1550
+12,10,1623239781,89,7596
+```
+- OpenOrders: This file contains open/unmacthed orders:
+```
+orderId,user,orderTime,orderType,quantity,price
+2,Ben,1623239771,BUY,8,148
+3,Steve,1623239772,SELL,24,6612
+4,Kim,1623239773,SELL,98,435
+6,Ben,1623239775,SELL,75,6356
+7,Kim,1623239776,BUY,38,7957
+8,Alex,1623239777,BUY,51,218
+9,Jennifer,1623239778,SELL,29,204
+11,Alex,1623239780,BUY,70,2351
+13,Sarah,1623239782,SELL,98,8302
+14,Alicia,1623239783,BUY,56,8771
+15,Alex,1623239784,BUY,83,737
+16,Andrew,1623239785,SELL,15,61
+17,Steve,1623239786,BUY,62,4381
+18,Ben,1623239787,BUY,33,5843
+19,Alicia,1623239788,BUY,20,5255
+20,James,1623239789,SELL,68,4260
+```
+      
