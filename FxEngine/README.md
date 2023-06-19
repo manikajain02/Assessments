@@ -92,4 +92,28 @@ orderId,user,orderTime,orderType,quantity,price
 19,Alicia,1623239788,BUY,20,5255
 20,James,1623239789,SELL,68,4260
 ```
-      
+
+
+## Sample Case:
+#### Input File:
+orderId,user,orderTime,orderType,quantity,price
+22,Francis,1623239770,SELL,74,1400
+23,Hema,1623239771,BUY,10,122
+24,Aswini,1623239772,SELL,52,6728
+25,Peter,1623239773,BUY,74,5200
+
+```
+
+#### MatchedOrders:
+```
+orderId1,orderId2,matchTime,quantity,price
+22,25,1623239773,74,1400
+
+```
+#### OpenOrders:
+```
+orderId,user,orderTime,orderType,quantity,price
+23,Hema,1623239771,BUY,10,122
+24,Aswini,1623239772,SELL,52,6728
+
+```
