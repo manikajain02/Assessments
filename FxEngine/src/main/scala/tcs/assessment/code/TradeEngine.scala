@@ -13,22 +13,20 @@ object TradeEngine {
 
     // hide _SUCCESS files in output
     spark.conf.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-    spark.sparkContext.hadoopConfiguration.set("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-
     import spark.implicits._
 
     val schema = Encoders.product[Order].schema
 
     //val inputOrderPath = args(0)
-    val inoutOrdersDF = spark.read
+    val inputOrdersDF = spark.read
       .format("csv")
       .schema(schema)
       //.load(inputOrderPath)
       .load("input/inputOrders.csv")
 
-    inoutOrdersDF.show()
+    inputOrdersDF.show()
 
-    val inputDS = inoutOrdersDF.as[Order]
+    val inputDS = inputOrdersDF.as[Order]
     var orderBookDS = spark.createDataset(Seq.empty[Order])
     var matchedDS = spark.createDataset(Seq.empty[Match])
 
